@@ -605,6 +605,9 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
             <button className="mobile-menu-btn" onClick={() => resetGame()}>
               🏠 返回标题
             </button>
+            <button className="mobile-menu-btn" onClick={() => window.open('https://yooho.ai/', '_blank')}>
+              🌐 返回主页
+            </button>
             <button className="mobile-menu-btn" onClick={onClose}>
               ▶️ 继续游戏
             </button>
