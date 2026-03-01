@@ -1,0 +1,179 @@
+/* ── Opening Screen ────────────────────────────── */
+
+.xm-start-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: linear-gradient(135deg, #0f0f23, #1a1a2e, #0f0f23);
+}
+
+.xm-start-content {
+  width: 100%;
+  max-width: 480px;
+  padding: 24px;
+  text-align: center;
+}
+
+.xm-start-icon {
+  font-size: 48px;
+  margin-bottom: 24px;
+}
+
+.xm-start-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f0f0ff;
+  margin-bottom: 8px;
+}
+
+.xm-start-subtitle {
+  font-size: 13px;
+  color: rgba(233, 30, 140, 0.8);
+  margin-bottom: 4px;
+}
+
+.xm-start-desc {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #8888aa;
+  margin-bottom: 32px;
+}
+
+/* Gender selection */
+.xm-start-gender-group {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.xm-start-gender-btn {
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+  color: #8888aa;
+  border: 1px solid rgba(233, 30, 140, 0.25);
+}
+
+.xm-start-gender-active {
+  background: linear-gradient(135deg, #e91e8c, #c2185b);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 12px rgba(233, 30, 140, 0.3);
+}
+
+/* Name input */
+.xm-start-name-input {
+  width: 100%;
+  max-width: 240px;
+  border-radius: 12px;
+  border: 1px solid rgba(233, 30, 140, 0.25);
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 14px;
+  background: rgba(15, 15, 35, 0.8);
+  color: #f0f0ff;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 24px;
+}
+
+.xm-start-name-input:focus {
+  border-color: #e91e8c;
+}
+
+/* Trainee preview cards */
+.xm-start-trainee-row {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.xm-start-trainee-card {
+  width: 72px;
+  text-align: center;
+}
+
+.xm-start-trainee-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin: 0 auto 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.xm-start-trainee-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #f0f0ff;
+}
+
+.xm-start-trainee-role {
+  font-size: 10px;
+  color: #8888aa;
+}
+
+/* CTA buttons */
+.xm-start-cta {
+  width: 100%;
+  border-radius: 999px;
+  padding: 12px 32px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #e91e8c, #c2185b);
+  box-shadow: 0 4px 16px rgba(233, 30, 140, 0.3);
+  transition: transform 0.15s, box-shadow 0.15s;
+  margin-bottom: 12px;
+}
+
+.xm-start-cta:active {
+  transform: scale(0.97);
+}
+
+.xm-start-continue {
+  width: 100%;
+  border-radius: 999px;
+  padding: 12px 32px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #8888aa;
+  background: transparent;
+  border: 1px solid rgba(233, 30, 140, 0.2);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 12px;
+}
+
+.xm-start-continue:hover {
+  border-color: rgba(233, 30, 140, 0.4);
+  color: #a0a0c0;
+}
+
+/* Music toggle */
+.xm-start-music {
+  margin-top: 16px;
+  font-size: 12px;
+  color: #555577;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.xm-start-music:hover {
+  color: #8888aa;
+}

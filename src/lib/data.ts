@@ -26,8 +26,7 @@ export type CharacterStats = Record<string, number>
 export interface Character {
   id: string
   name: string
-  avatar: string
-  fullImage: string
+  portrait: string
   gender: 'female' | 'male'
   age: number
   title: string
@@ -102,6 +101,22 @@ export interface Message {
   content: string
   character?: string
   timestamp: number
+  type?: 'scene-transition' | 'month-change'
+  sceneId?: string
+  monthInfo?: { month: number; period: string; chapter: string }
+}
+
+export interface StoryRecord {
+  id: string
+  month: number
+  period: string
+  title: string
+  content: string
+}
+
+export interface GlobalResources {
+  money: number
+  fame: number
 }
 
 // ============================================================
@@ -127,6 +142,23 @@ export const PERIODS: TimePeriod[] = [
 ]
 
 // ============================================================
+// Fallback 快捷选项（AI 未返回选项时使用）
+// ============================================================
+
+export const QUICK_ACTIONS = ['安排训练', '团队建设', '制定计划', '私下谈心']
+
+// ============================================================
+// 结局类型映射 — 驱动 EndingModal 样式
+// ============================================================
+
+export const ENDING_TYPE_MAP: Record<string, { label: string; color: string; icon: string }> = {
+  TE: { label: 'True Ending', color: '#ffd700', icon: '👑' },
+  HE: { label: 'Happy Ending', color: '#e91e8c', icon: '🌟' },
+  BE: { label: 'Bad Ending', color: '#6b7280', icon: '💔' },
+  NE: { label: 'Normal Ending', color: '#f59e0b', icon: '🌙' },
+}
+
+// ============================================================
 // 3 练习生共享 StatMeta 模板
 // ============================================================
 
@@ -150,8 +182,7 @@ const TRAINEE_STAT_METAS: StatMeta[] = [
 const MINSU: Character = {
   id: 'minsu',
   name: '金敏秀',
-  avatar: '敏',
-  fullImage: '/characters/minsu.jpg',
+  portrait: '/characters/minsu.jpg',
   gender: 'male',
   age: 19,
   title: '练习生·主唱',
@@ -175,8 +206,7 @@ const MINSU: Character = {
 const JIYEON: Character = {
   id: 'jiyeon',
   name: '朴智妍',
-  avatar: '智',
-  fullImage: '/characters/jiyeon.jpg',
+  portrait: '/characters/jiyeon.jpg',
   gender: 'female',
   age: 18,
   title: '练习生·主舞',
@@ -200,8 +230,7 @@ const JIYEON: Character = {
 const SEONGHOON: Character = {
   id: 'seonghoon',
   name: '崔成勋',
-  avatar: '勋',
-  fullImage: '/characters/seonghoon.jpg',
+  portrait: '/characters/seonghoon.jpg',
   gender: 'male',
   age: 20,
   title: '练习生·综艺',
@@ -225,8 +254,7 @@ const SEONGHOON: Character = {
 const ARIN: Character = {
   id: 'arin',
   name: '姜雅琳',
-  avatar: '琳',
-  fullImage: '/characters/arin.jpg',
+  portrait: '/characters/arin.jpg',
   gender: 'female',
   age: 19,
   title: 'NOVA Ent. 王牌练习生',

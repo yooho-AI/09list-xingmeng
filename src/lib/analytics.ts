@@ -1,11 +1,10 @@
 /**
  * [INPUT]: 无外部依赖
  * [OUTPUT]: 对外提供 trackEvent 及预定义事件追踪函数
- * [POS]: lib 的数据统计模块，被 store.ts 消费
+ * [POS]: lib 的数据统计模块，被 store.ts 和 App.tsx 消费
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 
-// Umami 全局类型
 declare global {
   interface Window {
     umami?: {
@@ -52,10 +51,10 @@ export function trackBankrupt() {
   trackEvent('xm_bankrupt')
 }
 
-export function trackTraineeLeave(trainee: string) {
-  trackEvent('xm_trainee_leave', { trainee })
+export function trackSceneUnlock(scene: string) {
+  trackEvent('xm_scene_unlock', { scene })
 }
 
-export function trackDebutStage() {
-  trackEvent('xm_debut_stage')
+export function trackStressCrisis(charId: string, stress: number) {
+  trackEvent('xm_stress_crisis', { charId, stress })
 }

@@ -1,13 +1,13 @@
 /**
- * [INPUT]: 无外部依赖（颜色硬编码，避免循环依赖）
- * [OUTPUT]: 对外提供 parseStoryParagraph, parseInlineContent, escapeHtml
- * [POS]: lib 的 AI 回复文本解析器，被 dialogue-panel 和 mobile-layout 消费
+ * [INPUT]: marked (Markdown渲染)，无项目内依赖（避免循环引用 data.ts）
+ * [OUTPUT]: parseStoryParagraph (narrative + statHtml + charColor), extractChoices (cleanContent + choices)
+ * [POS]: lib AI 回复解析层，Markdown 渲染 + charColor 驱动气泡左边框 + 选项提取
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 
-// ============================================================
-// 角色配色表（4 NPC 硬编码，避免运行时依赖动态角色）
-// ============================================================
+import { marked } from 'marked'
+
+// ── 角色名 → 主题色（手动同步 data.ts，不 import 避免循环依赖） ──
 
 const CHARACTER_COLORS: Record<string, string> = {
   '金敏秀': '#3b82f6',
@@ -16,9 +16,7 @@ const CHARACTER_COLORS: Record<string, string> = {
   '姜雅琳': '#6b7280',
 }
 
-// ============================================================
-// 数值配色表（11 种数值）
-// ============================================================
+// ── 数值标签 → 颜色 ──
 
 const STAT_COLORS: Record<string, string> = {
   '信任': '#e91e8c',
@@ -39,126 +37,157 @@ const STAT_COLORS: Record<string, string> = {
   '声望': '#e91e8c',
 }
 
+// ── 工具函数 ──
+
 export function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
-export function parseInlineContent(text: string): string {
-  if (!text) return ''
-  let result = ''
-  let remaining = text
-  let safety = 0
+function colorizeStats(line: string): string {
+  let html = line
 
-  while (remaining.length > 0 && safety < 100) {
-    safety++
-    remaining = remaining.trim()
-    if (!remaining) break
+  for (const [label, color] of Object.entries(STAT_COLORS)) {
+    html = html.replaceAll(
+      label,
+      `<span class="stat-change" style="color:${color};font-weight:600">${label}</span>`,
+    )
+  }
 
-    /* （动作） */
-    const actionMatch = remaining.match(/^[（(]([^）)]+)[）)]/)
-    if (actionMatch) {
-      result += `<span class="action">（${escapeHtml(actionMatch[1])}）</span>`
-      remaining = remaining.slice(actionMatch[0].length)
-      continue
-    }
+  for (const [name] of Object.entries(CHARACTER_COLORS)) {
+    html = html.replaceAll(
+      name,
+      `<span class="char-name">${name}</span>`,
+    )
+  }
 
-    /* *动作* */
-    const starMatch = remaining.match(/^\*([^*]+)\*/)
-    if (starMatch) {
-      result += `<span class="action">*${escapeHtml(starMatch[1])}*</span>`
-      remaining = remaining.slice(starMatch[0].length)
-      continue
-    }
+  html = html.replace(
+    /(\+\d+[万%]?)/g,
+    '<span class="stat-up">$1</span>',
+  )
+  html = html.replace(
+    /(-\d+[万%]?)/g,
+    '<span class="stat-down">$1</span>',
+  )
 
-    /* "对话" 或 "对话" */
-    const dialogueMatch = remaining.match(/^[""\u201c]([^""\u201d]+)[""\u201d]/)
-    if (dialogueMatch) {
-      result += `<span class="dialogue">\u201c${escapeHtml(dialogueMatch[1])}\u201d</span>`
-      remaining = remaining.slice(dialogueMatch[0].length)
-      continue
-    }
+  return html
+}
 
-    /* 下一个特殊标记 */
-    const nextAction = remaining.search(/[（(]/)
-    const nextStar = remaining.search(/\*/)
-    const nextDialogue = remaining.search(/[""\u201c]/)
-    const positions = [nextAction, nextStar, nextDialogue].filter((p) => p > 0)
-
-    if (positions.length > 0) {
-      const nextPos = Math.min(...positions)
-      const plain = remaining.slice(0, nextPos).trim()
-      if (plain) result += `<span class="plain-text">${escapeHtml(plain)}</span>`
-      remaining = remaining.slice(nextPos)
-    } else {
-      const plain = remaining.trim()
-      if (plain) result += `<span class="plain-text">${escapeHtml(plain)}</span>`
-      break
-    }
+function colorizeCharNames(html: string): string {
+  let result = html
+  for (const [name] of Object.entries(CHARACTER_COLORS)) {
+    result = result.replaceAll(
+      name,
+      `<span class="char-name">${name}</span>`,
+    )
   }
   return result
 }
 
-export function parseStoryParagraph(content: string): { narrative: string; statHtml: string } {
-  if (!content) return { narrative: '', statHtml: '' }
+// ── 选项提取 ──
 
-  const lines = content.split('\n').filter((l) => l.trim())
-  const storyParts: string[] = []
-  const statChanges: string[] = []
+export function extractChoices(content: string): {
+  cleanContent: string
+  choices: string[]
+} {
+  const lines = content.split('\n')
+  const choices: string[] = []
+  let choiceStartIdx = lines.length
 
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (!trimmed) continue
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const trimmed = lines[i].trim()
+    if (!trimmed && choices.length > 0) continue
+    if (!trimmed && choices.length === 0) continue
 
-    /* 数值变化 【好感度+2】 */
-    const statMatch = trimmed.match(/^【([^】]*[+-]\d+[^】]*)】$/)
-    if (statMatch) {
-      statChanges.push(statMatch[1])
-      continue
-    }
-
-    /* 【角色名】开头 */
-    const charMatch = trimmed.match(/^【([^】]+)】(.*)/)
-    if (charMatch) {
-      const charName = charMatch[1]
-      const rest = charMatch[2].trim()
-      if (charName.match(/[+-]\d+/)) {
-        statChanges.push(charName)
-        continue
-      }
-      const color = CHARACTER_COLORS[charName] || '#e91e8c'
-      const lineHtml = parseInlineContent(rest)
-      storyParts.push(
-        `<p class="dialogue-line"><span class="char-name" style="color:${color}">【${escapeHtml(charName)}】</span>${lineHtml}</p>`
-      )
-      continue
-    }
-
-    /* 纯旁白 vs 混合内容 */
-    const hasDialogue = trimmed.match(/[""\u201c][^""\u201d]+[""\u201d]/)
-    const hasAction = trimmed.match(/[（(][^）)]+[）)]/) || trimmed.match(/\*[^*]+\*/)
-    if (!hasDialogue && !hasAction) {
-      storyParts.push(`<p class="narration">${escapeHtml(trimmed)}</p>`)
+    if (/^[1-4][\.、．]\s*.+/.test(trimmed) || /^[A-Da-d][\.、．]\s*.+/.test(trimmed)) {
+      choices.unshift(trimmed.replace(/^[1-4A-Da-d][\.、．]\s*/, ''))
+      choiceStartIdx = i
     } else {
-      const lineHtml = parseInlineContent(trimmed)
-      if (lineHtml) storyParts.push(`<p class="dialogue-line">${lineHtml}</p>`)
+      break
     }
   }
 
-  let narrative = storyParts.join('')
-  let statHtml = ''
+  if (choices.length < 2) return { cleanContent: content, choices: [] }
 
-  if (statChanges.length > 0) {
-    const statText = statChanges
-      .map((s) => {
-        let color = '#9b9a97'
-        for (const [keyword, c] of Object.entries(STAT_COLORS)) {
-          if (s.includes(keyword)) { color = c; break }
-        }
-        return `<span style="color:${color}">【${escapeHtml(s)}】</span>`
-      })
-      .join(' ')
-    statHtml = `<p class="narration" style="font-style:normal;border-left:none;padding-left:0;margin-bottom:0;font-size:13px">${statText}</p>`
+  let cutIdx = choiceStartIdx
+  if (cutIdx > 0) {
+    const prevLine = lines[cutIdx - 1].trim()
+    if (/选择|选项|你可以|接下来|你的行动/.test(prevLine)) {
+      cutIdx -= 1
+    }
   }
 
-  return { narrative, statHtml }
+  if (cutIdx > 0 && !lines[cutIdx - 1].trim()) {
+    cutIdx -= 1
+  }
+
+  return {
+    cleanContent: lines.slice(0, cutIdx).join('\n').trim(),
+    choices,
+  }
+}
+
+// ── 主解析函数 ──
+
+export function parseStoryParagraph(content: string): {
+  narrative: string
+  statHtml: string
+  charColor: string | null
+} {
+  const lines = content.split('\n')
+  const narrativeLines: string[] = []
+  const statParts: string[] = []
+  let charColor: string | null = null
+
+  for (const raw of lines) {
+    const line = raw.trim()
+
+    if (!line) { narrativeLines.push(''); continue }
+
+    // 纯数值变化行
+    if (/^[【\[][^】\]]*[+-]\d+[^】\]]*[】\]]$/.test(line)) {
+      statParts.push(colorizeStats(line))
+      continue
+    }
+
+    // 获得物品
+    if (line.startsWith('【获得') || line.startsWith('[获得')) {
+      statParts.push(`<div class="item-gain">${escapeHtml(line)}</div>`)
+      continue
+    }
+
+    // Detect charColor from 【角色名】 pattern
+    if (!charColor) {
+      const charMatch = line.match(/^[【\[]([^\]】]+)[】\]]/)
+      if (charMatch) {
+        charColor = CHARACTER_COLORS[charMatch[1]] || null
+      }
+    }
+
+    narrativeLines.push(raw)
+  }
+
+  const rawNarrative = narrativeLines.join('\n').trim()
+  const html = rawNarrative ? (marked.parse(rawNarrative, { breaks: true, gfm: true }) as string) : ''
+  const narrative = colorizeCharNames(html)
+
+  if (!charColor) {
+    for (const [name, color] of Object.entries(CHARACTER_COLORS)) {
+      if (content.includes(name)) {
+        charColor = color
+        break
+      }
+    }
+  }
+
+  return {
+    narrative,
+    statHtml: statParts.length > 0
+      ? `<div class="stat-changes">${statParts.join('')}</div>`
+      : '',
+    charColor,
+  }
 }
